@@ -1,0 +1,16 @@
+# Python environment
+.venv/
+__pycache__/
+
+# dbt outputs
+target/
+dbt_packages/
+logs/
+
+# Elementary outputs
+edr_target/
+edr_logs/
+
+# Secrets - never commit these
+.env
+*.env
