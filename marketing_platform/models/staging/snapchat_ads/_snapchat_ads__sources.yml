@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: snapchat_ads
+    description: >
+      Raw Snapchat Ads data loaded as-is from CSV exports into Unity Catalog (bronze layer).
+      All columns are stored as text and are typed in the staging models.
+    database: marketing_bronze_prod
+    schema: snapchat_ads
+    tables:
+      - name: ads_stats
+        description: >
+          Daily ad performance. One row per ad, country and day. Holds spend, impressions,
+          clicks and the currency (EUR). The ad is identified by ad_detail_id, which matches ads.ad_id.
+      - name: ads
+        description: One row per Snapchat ad. Links each ad to its ad group.
+      - name: ad_groups
+        description: >
+          History table. One row per version of an ad group, so some ad groups appear more
+          than once. Staging keeps only the latest version of each.
+      - name: campaigns
+        description: One row per Snapchat campaign, with its name.

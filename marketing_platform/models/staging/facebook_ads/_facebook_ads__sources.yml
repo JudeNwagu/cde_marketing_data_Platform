@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: facebook_ads
+    description: >
+      Raw Facebook Ads data loaded as-is from CSV exports into Unity Catalog (bronze layer).
+      All columns are stored as text and are typed in the staging models.
+    database: marketing_bronze_prod
+    schema: facebook_ads
+    tables:
+      - name: ads_stats
+        description: >
+          Daily ad performance. One row per ad per day. Holds spend, impressions and clicks.
+          Has no campaign column, so campaign details come from joining to ads.
+      - name: ads
+        description: One row per ad. Links each ad to its campaign, ad group and account.
+      - name: campaigns
+        description: One row per Facebook campaign, with its name.
+      - name: ad_groups
+        description: One row per Facebook ad group, with its name.
+      - name: accounts
+        description: One row per Facebook ad account, including the account currency (USD or EUR).
