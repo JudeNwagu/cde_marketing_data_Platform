@@ -33,7 +33,13 @@ models:
   marketing_platform:
     staging:
       +materialized: view
+      +database: marketing_silver_prod
+      +schema: staging
     intermediate:
       +materialized: view
+      +database: marketing_silver_prod
+      +schema: intermediate
     marts:
       +materialized: table
+      +database: marketing_gold_prod
+      +schema: marketing
