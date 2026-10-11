@@ -1,6 +1,8 @@
 marketing_platform:
   target: dev
   outputs:
+
+    # Development: your computer, personal access token, everything in one schema
     dev:
       type: databricks
       host: "{{ env_var('DATABRICKS_HOST') }}"
@@ -8,4 +10,28 @@ marketing_platform:
       token: "{{ env_var('DATABRICKS_TOKEN') }}"
       catalog: marketing_dev
       schema: dbt_jude
+      threads: 4
+
+    # CI: pull-request checks, Service Principal, one throwaway schema per run
+    ci:
+      type: databricks
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      auth_type: oauth
+      client_id: "{{ env_var('DATABRICKS_CLIENT_ID') }}"
+      client_secret: "{{ env_var('DATABRICKS_CLIENT_SECRET') }}"
+      catalog: marketing_ci
+      schema: "{{ env_var('DBT_CI_SCHEMA', 'ci_local') }}"
+      threads: 4
+
+    # Production: Service Principal only, never a personal token
+    prod:
+      type: databricks
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      auth_type: oauth
+      client_id: "{{ env_var('DATABRICKS_CLIENT_ID') }}"
+      client_secret: "{{ env_var('DATABRICKS_CLIENT_SECRET') }}"
+      catalog: marketing_silver_prod
+      schema: staging
       threads: 4
