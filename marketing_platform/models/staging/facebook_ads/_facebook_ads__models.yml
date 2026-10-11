@@ -1,0 +1,92 @@
+version: 2
+
+models:
+  - name: stg_facebook_ads_stats
+    description: >
+      Cleaned Facebook daily ad performance. Grain: one row per ad per day.
+      Raw text is typed here, and the text value 'null' is turned into a real null.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [ad_id, ad_date]
+    columns:
+      - name: ad_id
+        description: Facebook ad ID, stored as text.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_facebook_ads')
+                field: ad_id
+      - name: account_id
+        description: Facebook ad account that owns the ad.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_facebook_accounts')
+                field: account_id
+      - name: ad_date
+        description: Day the performance happened.
+        data_tests:
+          - not_null
+      - name: spend
+        description: Amount spent that day, in the account currency.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: impressions
+        description: Times the ad was shown. Null if not reported.
+      - name: clicks
+        description: Clicks on the ad. Null if not reported, 0 if nobody clicked.
+
+  - name: stg_facebook_ads
+    description: Cleaned Facebook ads. Grain - one row per ad. Links each ad to its campaign.
+    columns:
+      - name: ad_id
+        description: Primary key. Facebook ad ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: campaign_id
+        description: The campaign the ad belongs to.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_facebook_campaigns')
+                field: campaign_id
+      - name: ad_status
+        description: Ad status in uppercase.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['ACTIVE', 'PAUSED', 'ARCHIVED', 'DELETED']
+
+  - name: stg_facebook_campaigns
+    description: Cleaned Facebook campaigns. Grain - one row per campaign.
+    columns:
+      - name: campaign_id
+        description: Primary key. Facebook campaign ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: campaign_name
+        description: Campaign name as shown in Facebook.
+
+  - name: stg_facebook_accounts
+    description: Cleaned Facebook ad accounts. Grain - one row per account.
+    columns:
+      - name: account_id
+        description: Primary key. Facebook ad account ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: currency
+        description: Currency the account is billed in. Facebook spend uses this currency.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['USD', 'EUR']

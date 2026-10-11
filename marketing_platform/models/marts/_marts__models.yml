@@ -1,0 +1,127 @@
+version: 2
+
+models:
+  - name: fct_marketing_spend
+    description: >
+      Unified daily advertising performance for Facebook and Snapchat, one table for all platforms.
+      Use this model to answer questions about spend, impressions, clicks, CTR, CPC and CPM.
+      Grain: one row per campaign, platform, country, currency and day.
+      IMPORTANT: spend is in the currency shown in the currency column (USD or EUR).
+      Never add spend across different currencies; always group or filter by currency.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - report_date
+              - platform
+              - campaign_id
+              - country
+              - currency
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "clicks <= impressions"
+          config:
+            where: "not has_missing_clicks and not has_missing_impressions"
+    columns:
+      - name: marketing_spend_key
+        description: >
+          Primary key. A hash of report_date, platform, campaign_id, country and currency.
+          Unique for every row.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: report_date
+        description: The day the advertising activity happened.
+        data_tests:
+          - not_null
+
+      - name: platform
+        description: The advertising platform the row comes from. Either facebook or snapchat.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['facebook', 'snapchat']
+
+      - name: campaign_id
+        description: >
+          The platform's own campaign ID, stored as text. IDs are only unique within a platform,
+          so always use it together with platform.
+        data_tests:
+          - not_null
+
+      - name: campaign_name
+        description: The campaign name as shown in the advertising platform.
+
+      - name: account_id
+        description: The advertising account that owns the campaign.
+
+      - name: country
+        description: >
+          Two-letter country code (for example DE, CH, AT). Only Snapchat reports country.
+          Facebook rows have the value unknown, which means the platform did not report a country.
+          It does not mean the ad ran in no country.
+        data_tests:
+          - not_null
+
+      - name: currency
+        description: >
+          Currency of the spend column (USD or EUR). Facebook gets it from the ad account,
+          Snapchat reports it directly.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['USD', 'EUR']
+
+      - name: spend
+        description: Total amount spent that day, in the currency shown in the currency column.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+
+      - name: impressions
+        description: >
+          Number of times the ads were shown. Null when the platform did not report it for
+          every ad in the group (see has_missing_impressions).
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+
+      - name: clicks
+        description: >
+          Number of clicks on the ads. Null means the platform did not report clicks. Zero means
+          nobody clicked. See has_missing_clicks.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+
+      - name: ctr
+        description: >
+          Click-through rate = clicks / impressions, as a fraction (0.02 means 2 percent).
+          Null when impressions is zero or null.
+
+      - name: cpc
+        description: >
+          Cost per click = spend / clicks, in the row's currency.
+          Null when clicks is zero or null, because the cost per click is undefined.
+
+      - name: cpm
+        description: >
+          Cost per 1,000 impressions = spend / impressions * 1000, in the row's currency.
+          Null when impressions is zero or null.
+
+      - name: has_missing_clicks
+        description: >
+          True when at least one ad in this row had no click count reported. Total clicks
+          and the metrics built on them (ctr, cpc) may then be understated.
+
+      - name: has_missing_impressions
+        description: >
+          True when at least one ad in this row had no impression count reported. Total
+          impressions and the metrics built on them (ctr, cpm) may then be understated.

@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_facebook_ads
+    description: Facebook performance joined to ad, campaign and account details. Grain - one row per ad per day.
+
+  - name: int_snapchat_ads
+    description: >
+      Snapchat performance joined to ad, ad group and campaign details.
+      Grain: one row per ad, country and day.
+
+  - name: int_marketing_ads
+    description: >
+      Facebook and Snapchat stacked into one common structure at ad level.
+      Grain: one row per platform, ad, country and day. Facebook has no country, so it uses unknown.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [platform, ad_id, ad_date, country]
+    columns:
+      - name: platform
+        description: facebook or snapchat.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['facebook', 'snapchat']
+      - name: campaign_name
+        description: Campaign name. Should never be missing, because every ad matches a campaign.
+        data_tests:
+          - not_null

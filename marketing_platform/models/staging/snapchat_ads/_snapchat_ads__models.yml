@@ -1,0 +1,92 @@
+version: 2
+
+models:
+  - name: stg_snapchat_ads_stats
+    description: >
+      Cleaned Snapchat daily ad performance. Grain: one row per ad, country and day.
+      The raw column ad_detail_id is renamed to ad_id to match Facebook.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [ad_id, ad_date, country]
+    columns:
+      - name: ad_id
+        description: Snapchat ad ID (a UUID stored as text).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_snapchat_ads')
+                field: ad_id
+      - name: ad_date
+        description: Day the performance happened.
+        data_tests:
+          - not_null
+      - name: country
+        description: Two-letter country code in uppercase.
+        data_tests:
+          - not_null
+      - name: currency
+        description: Currency of the spend, reported by Snapchat in each row.
+        data_tests:
+          - not_null
+      - name: spend
+        description: Amount spent that day, in the row currency.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: impressions
+        description: Times the ad was shown.
+      - name: clicks
+        description: Clicks on the ad. Null if not reported, 0 if nobody clicked.
+
+  - name: stg_snapchat_ads
+    description: Cleaned Snapchat ads. Grain - one row per ad.
+    columns:
+      - name: ad_id
+        description: Primary key. Snapchat ad ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: ad_group_id
+        description: >
+          The ad group the ad belongs to. Known issue: 304 ads point to an ad group that is
+          missing from the ad group file. None of them has performance data.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_snapchat_ad_groups')
+                field: ad_group_id
+              config:
+                severity: warn
+
+  - name: stg_snapchat_ad_groups
+    description: >
+      Cleaned Snapchat ad groups. The raw file is a history table with several versions per
+      ad group. This model keeps only the latest version, so the grain is one row per ad group.
+    columns:
+      - name: ad_group_id
+        description: Primary key. Snapchat ad group ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: campaign_id
+        description: The campaign the ad group belongs to.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_snapchat_campaigns')
+                field: campaign_id
+
+  - name: stg_snapchat_campaigns
+    description: Cleaned Snapchat campaigns. Grain - one row per campaign.
+    columns:
+      - name: campaign_id
+        description: Primary key. Snapchat campaign ID.
+        data_tests:
+          - unique
+          - not_null
+      - name: campaign_name
+        description: Campaign name as shown in Snapchat.
