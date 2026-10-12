@@ -1,0 +1,73 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'marketing_platform/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/deploy.yml'
+  schedule:
+    - cron: '0 6 * * *'   # every day at 06:00 UTC
+  workflow_dispatch:      # manual "Run workflow" button
+
+# Never run two production deployments at the same time
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  dbt-prod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+      DBX_CLIENT_ID: ${{ secrets.DBX_CLIENT_ID }}
+      DBX_CLIENT_SECRET: ${{ secrets.DBX_CLIENT_SECRET }}
+    defaults:
+      run:
+        working-directory: marketing_platform
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python packages (exact versions from uv.lock)
+        run: uv sync --frozen
+
+      - name: Install dbt packages
+        run: uv run dbt deps
+
+      - name: Build and test production (dbt build)
+        run: uv run dbt build --target prod
+
+      - name: Generate documentation
+        run: uv run dbt docs generate --target prod --static
+
+      - name: Save documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs-production
+          path: marketing_platform/target/static_index.html
+
+      - name: Generate Elementary report
+        continue-on-error: true
+        working-directory: .
+        run: |
+          mkdir -p reports
+          uvx --from 'elementary-data[databricks]' edr report \
+            --project-dir marketing_platform \
+            --profiles-dir marketing_platform \
+            --file-path reports/elementary_report.html
+
+      - name: Save Elementary report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: elementary-report
+          path: reports/elementary_report.html
+          if-no-files-found: ignore
