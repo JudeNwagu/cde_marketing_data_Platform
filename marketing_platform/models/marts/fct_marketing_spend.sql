@@ -1,5 +1,18 @@
+{{
+    config(
+        materialized='incremental',
+        incremental_strategy='merge',
+        unique_key='marketing_spend_key',
+        on_schema_change='append_new_columns'
+    )
+}}
+
 with ads as (
     select * from {{ ref('int_marketing_ads') }}
+    {% if is_incremental() %}
+    -- Only reprocess the last 3 days; platforms often revise recent numbers
+    where ad_date >= (select date_sub(max(report_date), 3) from {{ this }})
+    {% endif %}
 ),
 
 daily as (
