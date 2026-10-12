@@ -11,6 +11,8 @@ profile: 'marketing_platform'
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
 # found in the "models/" directory. You probably won't need to change these!
+flags:
+  require_explicit_package_overrides_for_builtin_materializations: false
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -43,3 +45,7 @@ models:
       +materialized: table
       +database: marketing_gold_prod
       +schema: marketing
+  elementary:
+    +schema: elementary
+    +database: marketing_gold_prod
+    +enabled: "{{ target.name == 'prod' }}"
