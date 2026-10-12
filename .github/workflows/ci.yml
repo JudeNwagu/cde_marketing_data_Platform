@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+# A new push to the same pull request cancels the older run
+concurrency:
+  group: ci-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  dbt-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+      DBX_CLIENT_ID: ${{ secrets.DBX_CLIENT_ID }}
+      DBX_CLIENT_SECRET: ${{ secrets.DBX_CLIENT_SECRET }}
+      DBT_CI_SCHEMA: pr_${{ github.event.number }}
+    defaults:
+      run:
+        working-directory: marketing_platform
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python packages (exact versions from uv.lock)
+        run: uv sync --frozen
+
+      - name: Install dbt packages
+        run: uv run dbt deps
+
+      - name: Build and test (dbt build)
+        run: uv run dbt build --target ci
+
+      - name: Generate documentation
+        run: uv run dbt docs generate --target ci --static
+
+      - name: Save documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: marketing_platform/target/static_index.html
+
+      - name: Delete the pull request schema
+        if: always()
+        run: uv run dbt run-operation drop_ci_schema --target ci
