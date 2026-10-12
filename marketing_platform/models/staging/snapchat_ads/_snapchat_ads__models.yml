@@ -6,6 +6,9 @@ models:
       Cleaned Snapchat daily ad performance. Grain: one row per ad, country and day.
       The raw column ad_detail_id is renamed to ad_id to match Facebook.
     data_tests:
+      - elementary.schema_changes:
+          config:
+            enabled: "{{ target.name == 'prod' }}"
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [ad_id, ad_date, country]

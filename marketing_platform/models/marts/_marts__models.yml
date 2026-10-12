@@ -9,6 +9,13 @@ models:
       IMPORTANT: spend is in the currency shown in the currency column (USD or EUR).
       Never add spend across different currencies; always group or filter by currency.
     data_tests:
+      - elementary.schema_changes:
+          config:
+            enabled: "{{ target.name == 'prod' }}"
+      - elementary.volume_anomalies:
+          config:
+            enabled: "{{ target.name == 'prod' }}"
+            severity: warn
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
