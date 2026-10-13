@@ -45,6 +45,9 @@ models:
       +materialized: table
       +database: marketing_gold_prod
       +schema: marketing
+      +persist_docs:
+        relation: true
+        columns: true
   elementary:
     +schema: elementary
     +database: marketing_gold_prod
