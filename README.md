@@ -314,7 +314,7 @@ LIMIT 10;
 SELECT platform, currency,
        try_divide(SUM(clicks), SUM(impressions))         AS ctr,
        try_divide(SUM(spend), SUM(clicks))               AS cpc,
-       try_divide(SUM(spend), SUM(impressions)) * 1000   AS cpm
+       try_divide(CAST(SUM(spend) AS DOUBLE) * 1000, SUM(impressions))   AS cpm
 FROM marketing_gold_prod.marketing.fct_marketing_spend
 GROUP BY platform, currency;
 ```
@@ -336,6 +336,7 @@ The model is designed to be queried in natural language. Table and column descri
 ## 10. Known limitations
 
 - **The platforms do not overlap in time.** Facebook covers 2025-01-01 to 2025-12-31 and Snapchat covers 2024-01-01 to 2024-12-02. A same-period comparison is not possible with this data, and the only like-for-like comparison is Facebook EUR versus Snapchat EUR.
+- **Coverage gaps.** Snapchat has data in only 9 of the 12 months between its first and last day, and the Facebook EUR account stops on 2025-09-17 while the Facebook USD accounts run to 2025-12-31. Monthly trend charts will therefore show gaps. They are in the source data and are not a model error.
 - **No currency conversion.** There are no exchange rates in the source data, so USD and EUR are always reported separately.
 - **Facebook country is `unknown`.** Facebook campaign names start with a country code, which could fill it in a future version. It was not done because it infers data from a naming habit.
 - **Null clicks and impressions** exist in the source data (about 26 percent of Facebook ad-days have no click count). They stay null, and the `has_missing_*` flags warn when a total may be understated.
